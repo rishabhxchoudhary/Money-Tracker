@@ -20,7 +20,7 @@ const Home = () => {
       list2.push(
         <p className="text-white">{`${doc.data().date} at ${
           doc.data().time
-        } - $${doc.data().balance}`}</p>,
+        } - ₹${doc.data().balance}`}</p>,
       )
     })
     list.reverse()
