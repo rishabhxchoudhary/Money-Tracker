@@ -1,6 +1,13 @@
 import React, { useState } from 'react'
 import { db } from '../firebaseConfig'
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore'
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  where,
+} from 'firebase/firestore'
 // import firebase from 'firebase'
 
 const MakeTransaction = () => {
@@ -20,8 +27,15 @@ const MakeTransaction = () => {
     event.preventDefault()
     await addDoc(postCollectionRef, transaction) // Add the transaction to Firebase
     if (check) {
-      const querySnapshorts = await getDocs(
+      const querySnapshorts2 = await getDocs(
         query(balCollectionRef, orderBy('date', 'desc')),
+      )
+      const querySnapshorts = await getDocs(
+        query(
+          balCollectionRef,
+          orderBy('time', 'desc'),
+          where('date', '==', querySnapshorts2.docs[0].data().date),
+        ),
       )
       const balance =
         querySnapshorts.docs[0].data().balance - transaction.amount
@@ -29,16 +43,17 @@ const MakeTransaction = () => {
       await addDoc(balCollectionRef, {
         balance,
         date: d.toLocaleDateString(),
-        time: d.toLocaleTimeString(),
+        time: d.toLocaleString('en-US', { hour12: false }).split(' ')[1],
       })
     }
     setTransaction({
-      date: '',
-      time: '',
-      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString(),
+      amount: 0,
       message: '',
     }) // Reset the form
     setCheck(true)
+    alert('Transaction recorded!')
   }
 
   // Function to update the transaction state when the user types in the form fields
@@ -48,7 +63,7 @@ const MakeTransaction = () => {
       ...prevState,
       [name]: value,
     }))
-    console.log(transaction)
+    // console.log(transaction)
   }
 
   return (
