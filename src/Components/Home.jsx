@@ -1,10 +1,8 @@
 import React, { useState } from 'react'
 import { db } from '../firebaseConfig'
-import { collection, getDocs } from 'firebase/firestore'
-// import firebase from 'firebase'
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 
 const Home = () => {
-  // State for current balance
   const postCollectionRef = collection(db, 'balance')
   const [balance, setBalance] = useState(0)
   const [date, setDate] = useState('')
@@ -12,23 +10,28 @@ const Home = () => {
   const [balList, setBalList] = useState([])
 
   useState(async () => {
-    const querySnapshorts = await getDocs(postCollectionRef)
+    const querySnapshorts = await getDocs(
+      query(postCollectionRef, orderBy('date', 'desc')),
+    )
     let list = []
-    let list2 = []
     querySnapshorts.forEach((doc) => {
-      list.push(doc.data())
-      list2.push(
-        <p className="text-white">{`${doc.data().date} at ${
+      list.push(
+        <p key={doc.id} className="text-white">{`${doc.data().date} at ${
           doc.data().time
         } - ₹${doc.data().balance}`}</p>,
       )
     })
-    list.reverse()
-    list2.reverse()
-    setBalList(list2)
-    setBalance(list[0].balance)
-    setDate(list[0].date)
-    setTime(list[0].time)
+    setBalList(list)
+    const querySnapshorts2 = await getDocs(
+      query(
+        postCollectionRef,
+        orderBy('time', 'desc'),
+        where('date', '==', querySnapshorts.docs[0].data().date),
+      ),
+    )
+    setBalance(querySnapshorts2.docs[0].data().balance)
+    setDate(querySnapshorts2.docs[0].data().date)
+    setTime(querySnapshorts2.docs[0].data().time)
   }, [])
 
   return (

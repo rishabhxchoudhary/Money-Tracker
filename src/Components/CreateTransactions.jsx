@@ -1,29 +1,44 @@
 import React, { useState } from 'react'
 import { db } from '../firebaseConfig'
-import { collection, addDoc } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore'
 // import firebase from 'firebase'
 
 const MakeTransaction = () => {
   // State for transaction data
   const [transaction, setTransaction] = useState({
-    date: '',
-    time: '',
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toLocaleTimeString(),
     amount: 0,
   })
 
+  const [check, setCheck] = useState(true)
+  const balCollectionRef = collection(db, 'balance')
   const postCollectionRef = collection(db, 'transactions')
 
   const theme = 'dark'
   const handleSubmit = async (event) => {
     event.preventDefault()
     await addDoc(postCollectionRef, transaction) // Add the transaction to Firebase
+    if (check) {
+      const querySnapshorts = await getDocs(
+        query(balCollectionRef, orderBy('date', 'desc')),
+      )
+      const balance =
+        querySnapshorts.docs[0].data().balance - transaction.amount
+      const d = new Date()
+      await addDoc(balCollectionRef, {
+        balance,
+        date: d.toLocaleDateString(),
+        time: d.toLocaleTimeString(),
+      })
+    }
     setTransaction({
       date: '',
       time: '',
-      amount: 0,
+      amount: '',
       message: '',
     }) // Reset the form
-    console.log('Transaction added!')
+    setCheck(true)
   }
 
   // Function to update the transaction state when the user types in the form fields
@@ -33,6 +48,7 @@ const MakeTransaction = () => {
       ...prevState,
       [name]: value,
     }))
+    console.log(transaction)
   }
 
   return (
@@ -97,7 +113,7 @@ const MakeTransaction = () => {
           />
         </div>
         <div className="mb-4">
-          <label htmlFor="amount" className="block text-white font-bold mb-2">
+          <label htmlFor="message" className="block text-white font-bold mb-2">
             Message
           </label>
           <input
@@ -111,6 +127,19 @@ const MakeTransaction = () => {
               theme === 'dark' ? 'gray-800' : 'gray-300'
             }`}
             autoComplete="off"
+          />
+        </div>
+        <div className="mb-4 flex flex-row-reverse items-center gap-2">
+          <label htmlFor="update" className="block text-white font-bold mb-2">
+            Update Balance
+          </label>
+          <input
+            type="checkbox"
+            id="update"
+            checked={check}
+            onChange={(e) => {
+              setCheck(!check)
+            }}
           />
         </div>
         <button
